@@ -3,7 +3,6 @@
 #
 
 import logging
-import os
 import struct
 import functools
 from typing import Optional, Tuple, Union, Dict
@@ -124,21 +123,24 @@ class LinuxStacker(interfaces.automagic.StackerLayerInterface):
         except exceptions.InvalidAddressException as e:
             logger.log(
                 constants.LOGLEVEL_VVVV,
-                f'Unable to translate "linux_banner" symbol virtual address : {e}',
+                'Unable to translate "linux_banner" symbol virtual address : %s',
+                e,
             )
             return False
 
         if not banner_value == target_banner:
             logger.log(
                 constants.LOGLEVEL_VV,
-                f"Mismatch between scanned and virtually translated linux banner : {target_banner} != {banner_value}.",
+                "Mismatch between scanned and virtually translated linux banner : %s != %s.",
+                target_banner,
+                banner_value,
             )
             return False
 
         return True
 
     @classmethod
-    @functools.lru_cache()
+    @functools.lru_cache
     def find_aslr(
         cls,
         context: interfaces.context.ContextInterface,
@@ -293,7 +295,7 @@ class LinuxIntelSubStacker:
         )
 
         if layer and dtb and test_banner_equality:
-            self._logger.debug(f"DTB was found at: {hex(dtb)}")
+            self._logger.debug("DTB was found at: %#x", dtb)
             return layer
         else:
             layer.destroy()
@@ -472,7 +474,7 @@ class LinuxAArch64SubStacker:
                                 layer.config[reg] = reg_val
                     except exceptions.SymbolError as e:
                         self._logger.log(constants.LOGLEVEL_VVV, e, exc_info=True)
-                    self._logger.debug(f"TTB1 was found at: {hex(ttb1)}")
+                    self._logger.debug("TTB1 was found at: %#x", ttb1)
                     return layer
                 else:
                     layer.destroy()
@@ -499,7 +501,8 @@ class LinuxAArch64SubStacker:
             except AttributeError:
                 cls._logger.log(
                     constants.LOGLEVEL_VVV,
-                    f"boot_cpu_data struct does not include the {reg_attribute_name} field.",
+                    "boot_cpu_data struct does not include the %s field.",
+                    reg_attribute_name,
                 )
 
         return results

@@ -325,7 +325,7 @@ class AArch64(linear.LinearlyMappedLayer):
 
         if self._translation_debug:
             vollog.debug(
-                f"Virtual {hex(virtual_offset)} lives in page frame {hex(table_address)} at offset {hex(self._mask(virtual_offset, low_bit-1, 0))} with descriptor {hex(descriptor)}",
+                f"Virtual {hex(virtual_offset)} lives in page frame {hex(table_address)} at offset {hex(self._mask(virtual_offset, low_bit - 1, 0))} with descriptor {hex(descriptor)}",
             )
 
         return table_address, low_bit, descriptor
@@ -365,7 +365,13 @@ class AArch64(linear.LinearlyMappedLayer):
             ):
                 # The block isn't contiguous
                 if stashed_offset is not None:
-                    yield stashed_offset, stashed_size, stashed_mapped_offset, stashed_mapped_size, stashed_map_layer
+                    yield (
+                        stashed_offset,
+                        stashed_size,
+                        stashed_mapped_offset,
+                        stashed_mapped_size,
+                        stashed_map_layer,
+                    )
                 # Update all the stashed values after output
                 stashed_offset = offset
                 stashed_mapped_offset = mapped_offset
@@ -384,7 +390,13 @@ class AArch64(linear.LinearlyMappedLayer):
             and stashed_mapped_size is not None
             and stashed_map_layer is not None
         ):
-            yield stashed_offset, stashed_size, stashed_mapped_offset, stashed_mapped_size, stashed_map_layer
+            yield (
+                stashed_offset,
+                stashed_size,
+                stashed_mapped_offset,
+                stashed_mapped_size,
+                stashed_map_layer,
+            )
 
     def _mapping(
         self, offset: int, length: int, ignore_errors: bool = False
@@ -526,7 +538,7 @@ class AArch64(linear.LinearlyMappedLayer):
             )
 
     @property
-    @functools.lru_cache()
+    @functools.lru_cache
     def page_shift(self) -> int:
         """Page shift for this layer, which is the page size bit length.
         - Typical values : 12, 14, 16
@@ -534,7 +546,7 @@ class AArch64(linear.LinearlyMappedLayer):
         return self._page_size_in_bits
 
     @property
-    @functools.lru_cache()
+    @functools.lru_cache
     def page_size(self) -> int:
         """Page size for this layer, in bytes.
         - Typical values : 4096, 16384, 65536
@@ -542,25 +554,25 @@ class AArch64(linear.LinearlyMappedLayer):
         return self._page_size
 
     @property
-    @functools.lru_cache()
+    @functools.lru_cache
     def page_mask(self) -> int:
         """Page mask for this layer."""
         return ~(self.page_size - 1)
 
     @classproperty
-    @functools.lru_cache()
+    @functools.lru_cache
     def bits_per_register(cls) -> int:
         """Returns the bits_per_register to determine the range of an
         AArch64TranslationLayer."""
         return cls._bits_per_register
 
     @property
-    @functools.lru_cache()
+    @functools.lru_cache
     def minimum_address(self) -> int:
         return self._virtual_addr_range[0]
 
     @property
-    @functools.lru_cache()
+    @functools.lru_cache
     def maximum_address(self) -> int:
         return self._virtual_addr_range[1]
 
@@ -747,19 +759,19 @@ class WindowsAArch64(WindowsAArch64Mixin, AArch64):
     _windows_fixed_page_size = 0x1000
 
     @classproperty
-    @functools.lru_cache()
+    @functools.lru_cache
     def page_shift(cls) -> int:
         """Page shift for this layer, which is the page size bit length."""
         return cls.page_size.bit_length() - 1
 
     @classproperty
-    @functools.lru_cache()
+    @functools.lru_cache
     def page_size(cls) -> int:
         """Page size for this layer, in bytes."""
         return cls._windows_fixed_page_size
 
     @classproperty
-    @functools.lru_cache()
+    @functools.lru_cache
     def page_mask(cls) -> int:
         """Page mask for this layer."""
         return ~(cls.page_size - 1)
@@ -831,7 +843,7 @@ class AArch64RegFieldValues:
     ):
         if reverse_lookup:
             lookup_table = {v: k for k, v in lookup_table.items()}
-        if lookup_table.get(value, None) != None:
+        if lookup_table.get(value, None) is not None:
             return lookup_table[value]
         else:
             raise KeyError(
