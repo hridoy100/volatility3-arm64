@@ -4,7 +4,7 @@
 
 import io
 import logging
-import urllib.parse
+import urllib.request
 from typing import Optional, Any, List
 
 try:
@@ -17,7 +17,7 @@ except ImportError:
 from volatility3.framework import exceptions
 from volatility3.framework.layers import resources
 
-vollog = logging.getLogger(__file__)
+vollog = logging.getLogger(__name__)
 
 if HAS_LEECHCORE:
 
@@ -48,7 +48,7 @@ if HAS_LEECHCORE:
                 try:
                     self._handle = leechcorepyc.LeechCore(self._device)
                 except TypeError:
-                    raise IOError(f"Unable to open LeechCore device {self._device}")
+                    raise OSError(f"Unable to open LeechCore device {self._device}")
             return self._handle
 
         def fileno(self):
@@ -129,6 +129,8 @@ if HAS_LEECHCORE:
 
         def readline(self, __size: Optional[int] = ...) -> bytes:
             data = b""
+            if not __size:
+                __size = 0
             while __size > self._chunk_size or __size < 0:
                 data += self.read(self._chunk_size)
                 index = data.find(b"\n")

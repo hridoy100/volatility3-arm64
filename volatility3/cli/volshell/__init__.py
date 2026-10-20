@@ -49,7 +49,7 @@ class VolShell(cli.CommandLine):
     python terminal with all the volatility support calls available.
     """
 
-    CLI_NAME = "volshell"
+    CLI_NAME = os.path.basename(sys.argv[0])  # volshell
 
     def __init__(self):
         super().__init__()
@@ -159,11 +159,20 @@ class VolShell(cli.CommandLine):
             default=constants.CACHE_PATH,
             type=str,
         )
-        parser.add_argument(
+        isf_group = parser.add_mutually_exclusive_group()
+        isf_group.add_argument(
             "--offline",
             help="Do not search online for additional JSON files",
             default=False,
             action="store_true",
+        )
+        isf_group.add_argument(
+            "-u",
+            "--remote-isf-url",
+            metavar="URL",
+            help="Search online for ISF json files",
+            default=constants.REMOTE_ISF_URL,
+            type=str,
         )
 
         # Volshell specific flags
@@ -236,6 +245,8 @@ class VolShell(cli.CommandLine):
 
         if partial_args.offline:
             constants.OFFLINE = partial_args.offline
+        elif partial_args.remote_isf_url:
+            constants.REMOTE_ISF_URL = partial_args.remote_isf_url
 
         # Do the initialization
         ctx = contexts.Context()  # Construct a blank context
@@ -271,9 +282,7 @@ class VolShell(cli.CommandLine):
         for plugin in volshell_plugin_list:
             subparser = parser.add_argument_group(
                 title=plugin.capitalize(),
-                description="Configuration options based on {} options".format(
-                    plugin.capitalize()
-                ),
+                description=f"Configuration options based on {plugin.capitalize()} options",
             )
             self.populate_requirements_argparse(subparser, volshell_plugin_list[plugin])
             configurables_list[plugin] = volshell_plugin_list[plugin]
@@ -320,7 +329,7 @@ class VolShell(cli.CommandLine):
 
         # UI fills in the config, here we load it from the config file and do it before we process the CL parameters
         if args.config:
-            with open(args.config, "r") as f:
+            with open(args.config) as f:
                 json_val = json.load(f)
                 ctx.config.splice(
                     plugin_config_path,
@@ -335,8 +344,9 @@ class VolShell(cli.CommandLine):
                     raise ValueError(
                         "Invalid extension (extensions must be of the format \"conf.path.value='value'\")"
                     )
-                address, value = extension[: extension.find("=")], json.loads(
-                    extension[extension.find("=") + 1 :]
+                address, value = (
+                    extension[: extension.find("=")],
+                    json.loads(extension[extension.find("=") + 1 :]),
                 )
                 ctx.config[address] = value
 
@@ -367,7 +377,7 @@ class VolShell(cli.CommandLine):
                 )
                 args.save_config = "config.json"
             if args.save_config:
-                vollog.debug("Writing out configuration data to {args.save_config}")
+                vollog.debug(f"Writing out configuration data to {args.save_config}")
                 if os.path.exists(os.path.abspath(args.save_config)):
                     parser.error(
                         f"Cannot write configuration: file {args.save_config} already exists"
